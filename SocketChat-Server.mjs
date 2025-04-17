@@ -161,7 +161,14 @@ export function start() {
 export function getMessage(channel = 1) {
   const index = multiChannel ? (channel - 1) : 0;
   if (index < 0 || index >= CHANNEL_COUNT) return null;
-  return lastMessages[index];
+
+  const original = lastMessages[index];
+  if (!original) return null;
+
+  return {
+    als: original.als,
+    msg: original.cot
+  };
 }
 
 export function sendMessage(channel = 1, alias, content) {
