@@ -1,223 +1,224 @@
-# 📡 WebSocket 채널 채팅 시스템 문서
+# 📡 WebSocket Channel Chat System Documentation
 
-이 시스템은 WebSocket 기반의 서버(`SocketChat-Server.mjs`)와 클라이언트(`SocketChat-Client.mjs`)로 구성되어 있으며, 단일 채널 또는 멀티 채널 모드를 지원하며 인증 기반 메시지 송수신을 제공합니다.
-
----
-
-## 📁 파일 구성
-
-- `SocketChat-Server.mjs` – WebSocket 서버 모듈 (채널, 인증, 메시지 브로드캐스트 관리)
-- `SocketChat-Client.mjs` – 클라이언트 모듈 (서버 연결, 메시지 수신/전송 처리)
+This system consists of a WebSocket-based server (`SocketChat-Server.mjs`) and client (`SocketChat-Client.mjs`), supporting both single-channel and multi-channel modes, and provides authentication-based message transmission and reception.
 
 ---
 
-## 🖥️ `SocketChat-Server.mjs` 설명서
+## 📁 File Structure
 
-### 📦 모듈 개요
-
-이 모듈은 WebSocket을 통해 채팅 서버를 구축하며 다음 기능을 제공합니다:
-
-- 단일 / 멀티 채널 모드 선택 가능
-- 채널별 메시지 브로드캐스트
-- 마지막 메시지 저장 기능
-- 인증 키 기반 메시지 처리
+- `SocketChat-Server.mjs` – WebSocket server module (manages channels, authentication, and message broadcasting)
+- `SocketChat-Client.mjs` – Client module (handles server connection, message sending/receiving)
 
 ---
 
-### ⚙️ 내보내는 함수
+## 🖥️ `SocketChat-Server.mjs` Manual
+
+### 📦 Module Overview
+
+This module builds a chat server using WebSocket and provides the following features:
+
+- Selectable single-channel or multi-channel mode
+- Channel-specific message broadcasting
+- Last message storage functionality
+- Message handling based on authentication key
+
+---
+
+### ⚙️ Exported Functions
 
 #### `setSingle()`
 
-- 단일 채널 모드로 설정합니다.
-- `listen()` 이후에는 변경할 수 없습니다.
+- Sets the server to single-channel mode.
+- Cannot be changed after calling `listen()`.
 
 #### `setMultiChannel(count: number)`
 
-- 멀티 채널 모드로 설정합니다.
-- `count`는 1 이상의 정수여야 합니다.
+- Sets the server to multi-channel mode.
+- `count` must be an integer greater than or equal to 1.
 
 #### `listen(port: number, key: string)`
 
-- 서버를 주어진 포트에서 실행하며, 인증 키를 설정합니다.
-- 클라이언트는 이 키를 요청에 포함해야 합니다.
+- Runs the server on the given port and sets the authentication key.
+- Clients must include this key in their requests.
 
 #### `stop()`
 
-- 서버는 동작 중이나 클라이언트 요청은 무시합니다.
+- The server keeps running but ignores client requests.
 
 #### `start()`
 
-- 서버가 다시 클라이언트 요청을 수락합니다.
+- The server resumes accepting client requests.
 
 #### `getMessage(channel?: number): { als, msg } | null`
 
-- 특정 채널의 마지막 메시지를 반환합니다.
-- 단일 채널 모드에서는 `channel` 인자를 생략하거나 `null`로 전달합니다.
+- Returns the last message of the specified channel.
+- In single-channel mode, omit the `channel` parameter or pass `null`.
 
 ```json
 {
-  "als": "별명",
-  "msg": "메시지 내용"
+  "als": "Alias",
+  "msg": "Message Content"
 }
 ```
 
 #### `sendMessage(channel: number, alias: string, content: string): boolean`
 
-- 서버가 특정 채널에 직접 메시지를 전송합니다.
+- Sends a message directly to a specific channel from the server.
 
 ---
 
-### 📥 클라이언트 메시지 형식
+### 📥 Client Message Format
 
 ```json
 {
   "typ": "sed",
-  "key": "인증키",
-  "cot": "메시지내용",
-  "als": "별명"
+  "key": "Authentication Key",
+  "cot": "Message Content",
+  "als": "Alias"
 }
 ```
 
 ---
 
-### ❗ 서버 에러 응답 형식
+### ❗ Server Error Response Format
 
 ```json
 {
   "typ": "err",
-  "code": "에러코드",
-  "msg": "에러 메시지"
+  "code": "Error Code",
+  "msg": "Error Message"
 }
 ```
 
-| 코드 | 설명 |
-|------|------|
-| `100/1` | 인증 키 불일치 |
-| `100/2` | JSON 파싱 실패 또는 필드 누락 |
-| `100/3` | 지원하지 않는 요청 타입 |
-| `110/1` | 서버가 요청을 처리하지 않음 |
-| `110/2` | 내부 서버 오류 |
+| Code | Description |
+|------|-------------|
+| `100/1` | Authentication key mismatch |
+| `100/2` | JSON parsing failure or missing fields |
+| `100/3` | Unsupported request type |
+| `110/1` | Server not processing requests |
+| `110/2` | Internal server error |
 
 ---
 
-### ✅ 특징 요약
+### ✅ Feature Summary
 
-- 단일 또는 멀티 채널 모드 선택 가능
-- 마지막 메시지 저장 및 전달
-- 인증 기반 메시지 필터링
-- alias 기반 채널 분배 (멀티 채널 시)
-
----
-
-## 🤖 `SocketChat-Client.mjs` 설명서
-
-### 📦 모듈 개요
-
-이 모듈은 서버와의 WebSocket 통신을 쉽게 사용할 수 있도록 인터페이스를 제공합니다.
+- Selectable single or multi-channel mode
+- Stores and delivers the last message
+- Filters messages based on authentication
+- Channel distribution based on alias (in multi-channel mode)
 
 ---
 
-### 📥 클라이언트 설정 방법
+## 🤖 `SocketChat-Client.mjs` Manual
+
+### 📦 Module Overview
+
+This module provides an interface for easy WebSocket communication with the server.
+
+---
+
+### 📥 How to Set Up the Client
 
 ```js
-connect("ws://localhost:3000", 1); // 멀티 채널
-connect("ws://localhost:3000", 0); // 싱글 채널
+connect("ws://localhost:3000", 1); // Multi-channel
+connect("ws://localhost:3000", 0); // Single-channel
 ```
 
 ---
 
-### 📡 내보내는 함수
+### 📡 Exported Functions
 
 #### `connect(url: string, mode: number): void`
 
-- 서버 주소와 모드(멀티=1, 싱글=0)를 기반으로 서버에 연결합니다.
+- Connects to the server based on the server URL and mode (multi=1, single=0).
 
-> ⚠️ 실수 방지를 위해 유효성 검사는 `console.warn()`으로 안내됩니다.
+> ⚠️ Validation is guided via `console.warn()` to prevent mistakes.
 
 #### `disconnect(): void`
 
-- 서버와의 WebSocket 연결을 종료합니다.
+- Disconnects the WebSocket connection with the server.
 
 #### `getMessage(channel: number | null): { als, msg } | null`
 
-- 해당 채널의 마지막 메시지를 반환합니다.
-- 단일 채널 모드에서는 `null` 전달
+- Returns the last message from the specified channel.
+- In single-channel mode, pass `null`.
 
 #### `sendMessage(msg: string, alias: string, channel: number | null): void`
 
-- 메시지를 서버로 전송합니다.
-- 단일 채널 모드에서는 `channel`에 `null` 전달
+- Sends a message to the server.
+- In single-channel mode, pass `null` to the `channel` parameter.
 
 ```json
 {
-  "als": "별명",
-  "msg": "보낸 메시지"
+  "als": "Alias",
+  "msg": "Sent Message"
 }
 ```
 
 ---
 
-### ❗ 주의사항
+### ❗ Important Notes
 
-- 클라이언트는 서버에서 제공된 인증 키(`base64`)를 알아야 합니다.
-- 채널 번호는 멀티 채널 모드에서만 사용됩니다.
-- 서버 연결 이전에 메시지를 전송하려 하면 경고가 출력됩니다.
+- The client must know the authentication key (`base64`) provided by the server.
+- Channel numbers are only used in multi-channel mode.
+- Attempting to send a message before establishing a server connection will trigger a warning.
 
 ---
 
-## 🧪 CLI 기반 실행 흐름 예시
+## 🧪 Example CLI Execution Flow
 
 ```bash
-? 서버 주소는? → ws://localhost:3000  
-? 모드? → 멀티 채널  
-? 채널 수는? → 5  
-? 내 별명은? → Henry  
-? 서버 키는? → base64examplekey
+? Server Address? → ws://localhost:3000  
+? Mode? → Multi-Channel  
+? Number of Channels? → 5  
+? Your Alias? → Henry  
+? Server Key? → base64examplekey
 ```
 
 ---
 
-## 📤 통신 예시
+## 📤 Communication Example
 
-### 1. 클라이언트가 메시지 전송
+### 1. Client Sends a Message
 
 ```json
 {
   "typ": "sed",
   "key": "base64examplekey",
-  "cot": "안녕하세요!",
+  "cot": "Hello!",
   "als": "Henry"
 }
 ```
 
-### 2. 서버가 클라이언트에게 브로드캐스트
+### 2. Server Broadcasts to Clients
 
 ```json
 {
   "typ": "rev",
   "key": "base64examplekey",
-  "cot": "안녕하세요!",
+  "cot": "Hello!",
   "als": "Henry"
 }
 ```
 
 ---
 
-## 🧾 의존 모듈
+## 🧾 Dependencies
 
-- `ws` – WebSocket 서버/클라이언트 통신
-- `readline`, `inquirer` – CLI 기반 입력 처리 (사용자 정보 설정)
+- `ws` – WebSocket server/client communication
+- `readline`, `inquirer` – CLI-based input handling (user setup)
 
 ---
 
-## ✅ 전체 요약
+## ✅ Full Summary
 
-| 항목 | 설명 |
-|------|------|
-| 인증 | base64 문자열을 기반으로 서버 인증 수행 |
-| 채널 | 단일 / 멀티 채널 모드 지원 |
-| 메시지 처리 | 마지막 메시지 저장, 실시간 브로드캐스트 |
-| 사용성 | 클라이언트 모듈로 쉽게 통신 가능 |
-| 커스터마이징 | 채널 수 및 별명 자유 설정 |
+| Item | Description |
+|------|-------------|
+| Authentication | Server authentication using a base64 string |
+| Channels | Supports single and multi-channel modes |
+| Message Handling | Stores last messages, real-time broadcasting |
+| Usability | Easy communication via the client module |
+| Customization | Free setting of channel number and alias |
 
 Made by Henry and AI
+
