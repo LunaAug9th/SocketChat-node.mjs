@@ -1,4 +1,3 @@
-// wsClient.js
 import WebSocket from 'ws';
 
 class WSClient {
@@ -13,8 +12,8 @@ class WSClient {
   connect(url, isMulti, key) {
     return new Promise((resolve, reject) => {
       if (this.connected) {
-        console.warn('⚠️ 이미 연결되어 있습니다. 중복 연결을 방지하세요.');
-        return reject(new Error('이미 연결되어 있습니다.'));
+        console.warn('⚠️ Already connected. Avoid duplicate connections.');
+        return reject(new Error('Already connected.'));
       }
 
       this.ws = new WebSocket(url);
@@ -22,7 +21,7 @@ class WSClient {
       this.key = key;
 
       this.ws.on('open', () => {
-        console.log(`🔌 연결됨: ${url}`);
+        console.log(`🔌 Connected: ${url}`);
         this.connected = true;
         resolve();
       });
@@ -35,20 +34,20 @@ class WSClient {
             this.lastMessages[channel] = message;
             console.log(`[RECV] (${channel}) ${message.als}: ${message.cot}`);
           } else if (message.typ === 'err') {
-            console.warn(`[서버 에러 ${message.code}] ${message.msg}`);
+            console.warn(`[Server Error ${message.code}] ${message.msg}`);
           }
         } catch (err) {
-          console.warn('⚠️ 메시지 파싱 오류:', err.message);
+          console.warn('⚠️ Message parsing error:', err.message);
         }
       });
 
       this.ws.on('close', () => {
-        console.log('🔌 연결 종료됨');
+        console.log('🔌 Connection closed.');
         this.connected = false;
       });
 
       this.ws.on('error', (err) => {
-        console.warn('⚠️ WebSocket 오류:', err.message);
+        console.warn('⚠️ WebSocket error:', err.message);
         reject(err);
       });
     });
@@ -56,7 +55,7 @@ class WSClient {
 
   disconnect() {
     if (!this.connected || !this.ws) {
-      console.warn('⚠️ 연결되어 있지 않아 해제할 수 없습니다.');
+      console.warn('⚠️ Cannot disconnect because there is no active connection.');
       return;
     }
     this.ws.close();
@@ -65,13 +64,13 @@ class WSClient {
 
   getMessage(channel = null) {
     if (!this.connected) {
-      console.warn('⚠️ 서버에 연결되어 있지 않습니다.');
+      console.warn('⚠️ Not connected to the server.');
       return null;
     }
   
     const index = this.isMulti ? ((channel ?? 1) - 1) : 0;
     if (index < 0 || index >= 25) {
-      console.warn('⚠️ 잘못된 채널 번호입니다.');
+      console.warn('⚠️ Invalid channel number.');
       return null;
     }
   
@@ -83,16 +82,15 @@ class WSClient {
       msg: message.cot
     };
   }
-  
 
   sendMessage(content, alias, channel = null) {
     if (!this.connected || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      console.warn('⚠️ 메시지를 보내기 전에 WebSocket 연결을 확인하세요.');
+      console.warn('⚠️ Check the WebSocket connection before sending a message.');
       return;
     }
 
     if (!alias || !content) {
-      console.warn('⚠️ 별명과 내용은 필수입니다.');
+      console.warn('⚠️ Alias and content are required.');
       return;
     }
 

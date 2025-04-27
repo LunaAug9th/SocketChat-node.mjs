@@ -12,43 +12,34 @@ let channels = [];
 
 export function setSingle() {
   if (modeLocked) {
-    console.warn('❌ listen() 이후에는 모드를 변경할 수 없습니다.');
+    console.warn('❌ Cannot change mode after listen() has been called.');
     return;
   }
   multiChannel = false;
-  console.log('✅ 단일 채널 모드로 설정됨');
+  console.log('✅ Set to single channel mode.');
 }
 
 export function setMultiChannel(count) {
-    if (modeLocked) {
-      console.warn('❌ listen() 이후에는 모드를 변경할 수 없습니다.');
-      return;
-    }
-    if (!Number.isInteger(count) || count <= 0) {
-      throw new Error('채널 수는 1 이상의 정수여야 합니다.');
-    }
-    CHANNEL_COUNT = count;
-    multiChannel = true;
-    console.log(`✅ 멀티 채널 모드 (${CHANNEL_COUNT}채널)로 설정됨`);
+  if (modeLocked) {
+    console.warn('❌ Cannot change mode after listen() has been called.');
+    return;
   }
+  if (!Number.isInteger(count) || count <= 0) {
+    throw new Error('Channel count must be an integer greater than 0.');
+  }
+  CHANNEL_COUNT = count;
+  multiChannel = true;
+  console.log(`✅ Set to multi-channel mode (${CHANNEL_COUNT} channels).`);
+}
 
 export function listen(port = 3000, key) {
   if (!port || typeof port !== 'number') {
-    throw new Error('포트 번호가 필요하며 숫자여야 합니다.');
+    throw new Error('A port number is required and must be a number.');
   }
   if (!key || typeof key !== 'string') {
-    throw new Error('base64 키가 필요합니다.');
+    throw new Error('A base64 key is required.');
   }
   if (wss) return;
-
-  storedKey = key;
-  modeLocked = true;
-  serverActive = true;
-
-  lastMessages = Array(CHANNEL_COUNT).fill(null);
-  channels = Array.from({ length: CHANNEL_COUNT }, () => new Set());
-
-  wss = new WebSocketServer({ port });
 
   storedKey = key;
   modeLocked = true;
@@ -65,10 +56,10 @@ export function listen(port = 3000, key) {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '110/1',
-          msg: '서버가 현재 요청을 처리하지 않습니다.'
+          msg: 'The server is currently not accepting requests.'
         }));
       }
-  
+
       let parsed;
       try {
         parsed = JSON.parse(data.toString());
@@ -76,56 +67,56 @@ export function listen(port = 3000, key) {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '100/2',
-          msg: '올바르지 않은 JSON 형식입니다.'
+          msg: 'Invalid JSON format.'
         }));
       }
-  
+
       const { typ, key: clientKey, cot, als } = parsed;
-  
+
       if (!clientKey || !cot || !als) {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '100/2',
-          msg: '요청 필드가 누락되었습니다.'
+          msg: 'Missing required fields in request.'
         }));
       }
-  
+
       if (typ !== 'sed') {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '100/3',
-          msg: '지원하지 않는 요청 타입입니다.'
+          msg: 'Unsupported request type.'
         }));
       }
-  
+
       if (clientKey !== storedKey) {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '100/1',
-          msg: '인증 키가 일치하지 않습니다.'
+          msg: 'Authentication key mismatch.'
         }));
       }
-  
+
       try {
         const channelIndex = multiChannel
           ? Math.max(0, Math.min(CHANNEL_COUNT - 1, als.length % CHANNEL_COUNT))
           : 0;
-  
+
         const message = {
           typ: 'rev',
           key: storedKey,
           cot,
           als
         };
-  
+
         lastMessages[channelIndex] = message;
-  
+
         for (const client of channels[channelIndex]) {
           if (client.readyState === 1) {
             client.send(JSON.stringify(message));
           }
         }
-  
+
         channels[channelIndex].add(ws);
         console.log(`[SEND] (${channelIndex}) ${als}: ${cot}`);
       } catch (err) {
@@ -133,29 +124,29 @@ export function listen(port = 3000, key) {
         return ws.send(JSON.stringify({
           typ: 'err',
           code: '110/2',
-          msg: '서버 내부 처리 중 오류가 발생했습니다.'
+          msg: 'An error occurred during server processing.'
         }));
       }
     });
-  
+
     ws.on('close', () => {
       for (const group of channels) {
         group.delete(ws);
       }
     });
-  });  
+  });
 
-  console.log(`🟢 서버 실행됨: ws://localhost:${port} [${multiChannel ? '멀티 채널' : '단일 채널'}]`);
+  console.log(`🟢 Server started: ws://localhost:${port} [${multiChannel ? 'Multi-channel' : 'Single-channel'}]`);
 }
 
 export function stop() {
   serverActive = false;
-  console.log('⏸️ 서버 정지 상태. 연결은 유지되나 요청은 무시됨.');
+  console.log('⏸️ Server paused. Connections remain but requests are ignored.');
 }
 
 export function start() {
   serverActive = true;
-  console.log('▶️ 서버가 다시 요청을 수락합니다.');
+  console.log('▶️ Server is accepting requests again.');
 }
 
 export function getMessage(channel = 1) {
@@ -173,7 +164,7 @@ export function getMessage(channel = 1) {
 
 export function sendMessage(channel = 1, alias, content) {
   const index = multiChannel ? (channel - 1) : 0;
-  if (index < 0 || index >= CHANNEL_COUNT) throw new Error('잘못된 채널 번호');
+  if (index < 0 || index >= CHANNEL_COUNT) throw new Error('Invalid channel number.');
 
   const message = {
     typ: 'rev',
