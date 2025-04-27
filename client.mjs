@@ -1,7 +1,7 @@
 // cli-chat.js
 
 import readline from 'readline';
-import * as client from './wsClient.js'; // wsClient.js 모듈에서 connect/sendMessage/getMessage 사용
+import * as client from './SocketChat-Client.mjs';
 
 const rl = readline.createInterface({
   input: process.stdin,
